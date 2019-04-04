@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>招聘信息发布</title>
+<link rel="stylesheet" href="js/easyui.css" />
+<link rel="stylesheet" href="js/icon.css" />
+<script src="js/jquery.min.js" charset="UTF-8"></script>
+<script src="js/jquery.easyui.min.js" charset="UTF-8"></script>
+<script src="js/easyui-lang-zh_CN.js" charset="UTF-8"></script>
+<script>
+	var url;
+	$(function() {
+		/*    $("#dg").datagrid({
+		   
+		   rowStyler: function(index,row){
+				if (row.message_age < 15){
+					return 'background-color:black;color:#fff;font-weight:bold;';
+				}
+			}
+		   
+		  }); 
+		 */
+	});
+	/**模糊查询
+	   重新发起异步请求，查询数据库， 重新加载datagrid
+	 */
+	function searchmessage() {
+		$('#dg').datagrid('load', {
+			message_id : $("#message_id").val(),
+			message_admin_id : $('#message_admin_id').val()
+		});
+	}
+	/* 单击添加按钮，出现用户窗口
+	 */
+	function openmessageAddDialog() {
+		$("#dlg").dialog("open").dialog("setTitle", "添加信息发布");
+		url = "message.do?opt=add";
+		//url="orderdetail.do?opt=queryOrderdetail";
+	}
+	/*单击关闭按钮，出现用户窗口
+	 */
+	function closemessageAddDialog() {
+		$("#dlg").dialog("close");
+		$("#fm").form('clear');
+	}
+	/*
+	    实现保存发起异步请求，请求数据到后台
+	 */
+	function savemessage() {
+		$("#fm").form(
+				"submit",
+				{
+					url : url,
+					onSubmit : function() {
+						return $(this).form("validate");//提交之前进行校验
+					},
+					success : function(result) {
+						var result = eval('(' + result + ')');
+						if (result.errorMsg) {
+							$.messager.alert('系统提示', "<font color=red>"
+									+ result.errorMsg + "</font>");
+							return;
+						} else {
+							$.messager.alert('系统提示', '保存成功');
+							closemessageAddDialog();
+							$("#dg").datagrid("reload");
+						}
+					}
+				});
+
+	}
+
+	/*
+	    修改功能
+	 */
+	function openmessageModifyDialog() {
+
+		//获取选中要修改的datagrid行
+		var selectedRows = $("#dg").datagrid('getSelections');
+		if (selectedRows.length != 1) {
+			$.messager.alert('系统提示', '请选择一条要编辑的数据！');
+			return;
+		}
+		//获取行的索引
+		var row = selectedRows[0];
+		$("#dlg").dialog("open").dialog("setTitle", "修改用户信息");
+		//把选中的行的信息值，直接赋值给对话框的form中
+		$("#fm").form("load", row);
+		url = "message.do?opt=upd&message_id=" + row.message_id;
+	}
+	/*
+	删除功能
+	 */
+	function deletemessage() {
+		//获取选中要修改的datagrid行
+		var selectedRows = $("#dg").datagrid('getSelections');
+		if (selectedRows.length == 0) {
+			$.messager.alert('系统提示', '请选择要删除的数据！');
+			return;
+		}
+		//实现删除多条记录
+		var strIds = [];
+		for (var i = 0; i < selectedRows.length; i++) {
+			strIds.push(selectedRows[i].message_id);
+
+		}
+		var ids = strIds.join(",");
+
+		$.messager.confirm("系统提示", "您确认要删除这<font color=red>"
+				+ selectedRows.length + "</font>条数据吗？", function(r) {
+			if (r) {
+				//发起异步请求
+				$.post("message.do?opt=del", {
+					delIds : ids
+				}, function(result) {
+					if (result.success) {
+						$.messager.alert('系统提示', "您已成功删除<font color=red>"
+								+ result.rows + "</font>条数据！");
+						$("#dg").datagrid("reload");
+					} else {
+						$.messager.alert('系统提示', result.errorMsg);
+					}
+				}, "json");
+			}
+		});
+	}
+</script>
+<body style="margin: 1px">
+
+	<!-- 查询所有datagrid -->
+	<table id="dg" title="查询招聘信息" class="easyui-datagrid" fitColumns="true"
+		pagination="true" rownumbers="true" url="message.do?opt=query"
+		fit="true" toolbar="#tb">
+		<thead>
+			<tr>
+				<th field="cb" checkbox="true" align="center"></th>
+				<th field="message_id" width="100" align="center">信息编号</th>
+				<th field="message_admin_id" width="100" align="center">管理员编号</th>
+				<th field="message_name" width="100" align="center">职位名称</th>
+				<th field="message_type" width="100" align="center">职位类别</th>
+				<th field="message_peoplecount" width="100" align="center">招聘人数</th>
+				<th field="message_date" width="100" align="center">更新时间</th>
+				<th field="message_txt" width="100" align="center">职位要求概述</th>
+
+
+			</tr>
+		</thead>
+	</table>
+	<!--  查询所有工具栏以及模糊查询  -->
+	<div id="tb">
+		<div>
+			<a href="javascript:openmessageAddDialog()" class="easyui-linkbutton"
+				iconCls="icon-add" plain="true">添加</a> <a
+				href="javascript:openmessageModifyDialog()"
+				class="easyui-linkbutton" iconCls="icon-edit" plain="true">修改</a> <a
+				href="javascript:deletemessage()" class="easyui-linkbutton"
+				iconCls="icon-remove" plain="true">删除</a>
+		</div>
+
+
+
+
+
+
+		<br />
+		<div>
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;信息编号查询：&nbsp;<input
+				type="text" name="message_id" id="message_id" size="20"
+				onkeydown="if(event.keyCode==13) searchmessage()" /> <a
+				href="javascript:searchmessage()" class="easyui-linkbutton"
+				iconCls="icon-search" plain="true">搜索</a> <br />
+
+			
+		</div>
+		<br />
+	</div>
+
+	<!-- 添加功能对话框,修改功能对话框 -->
+	<div id="dlg" class="easyui-dialog"
+		style="width: 470px; height: 290px; padding: 10px 20px" closed="true"
+		buttons="#dlg-buttons">
+		<form id="fm" method="post">
+			<table cellspacing="5px;">
+
+				<tr>
+					<td>管理员编号：</td>
+					<td><input type="text" id="message_admin_id"
+						name="message_admin_id" class="easyui-validatebox" required="true" /></td>
+				</tr>
+				<tr>
+					<td>职位名称：</td>
+					<td><input type="text" id="message_name" name="message_name"
+						class="easyui-validatebox" required="true" /></td>
+				</tr>
+				<tr>
+					<td>职位类别：</td>
+					<td><input type="text" id="message_type" name="message_type"
+						class="easyui-validatebox" required="true" /></td>
+				</tr>
+				<tr>
+					<td>招聘人数：</td>
+					<td><input type="text" id="message_peoplecount"
+						name="message_peoplecount" class="easyui-validatebox"
+						required="true" /></td>
+				</tr>
+				<tr>
+					<td>更新时间：</td>
+					<td><input type="text" id="message_date" name="message_date"
+						class="easyui-validatebox" required="true" /></td>
+				</tr>
+				<td>职位要求概述：</td>
+				<td><input type="text" id="message_txt" name="message_txt"
+					class="easyui-validatebox" required="true" /></td>
+				</tr>
+				<tr>
+			</table>
+	</div>
+	<!-- 添加功能对话框 的保存和关闭 -->
+	<div id="dlg-buttons">
+		<a href="javascript:savemessage()" class="easyui-linkbutton"
+			iconCls="icon-ok">保存</a> <a
+			href="javascript:closemessageAddDialog()" class="easyui-linkbutton"
+			iconCls="icon-cancel">关闭</a>
+	</div>
+
+</body>
+</html>
